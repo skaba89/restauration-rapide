@@ -5,8 +5,9 @@
   "scripts": {
     "dev": "next dev -p 3010",
     "dev:clean": "npx kill-port 3010 && next dev -p 3010",
-    "build": "next build && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/",
-    "start": "NODE_ENV=production bun .next/standalone/server.js 2>&1 | tee server.log",
+    "build": "npx prisma generate --schema=./prisma/schema.prisma && next build && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/",
+    "start": "HOSTNAME=0.0.0.0 PORT=${PORT:-10000} node .next/standalone/server.js",
+    "seed:kfm": "npx tsx scripts/setup-kfm-delice.ts",
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",

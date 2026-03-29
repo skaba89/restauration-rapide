@@ -1,0 +1,40 @@
+services:
+  - type: web
+    name: kfm-delice
+    runtime: node
+    plan: free
+    region: oregon
+    branch: master
+    repo: https://github.com/skaba89/restauration-rapide
+    buildCommand: npm run build
+    startCommand: npm run start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: NEXT_TELEMETRY_DISABLED
+        value: 1
+      - key: DEFAULT_COUNTRY_CODE
+        value: GN
+      - key: DEFAULT_CURRENCY_CODE
+        value: GNF
+      - key: NEXTAUTH_SECRET
+        generateValue: true
+      - key: NEXTAUTH_URL
+        value: https://kfm-delice.onrender.com
+      - key: DATABASE_URL
+        sync: false
+      - key: PUSHER_APP_ID
+        sync: false
+      - key: PUSHER_KEY
+        sync: false
+      - key: PUSHER_SECRET
+        sync: false
+      - key: PUSHER_CLUSTER
+        value: eu
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
