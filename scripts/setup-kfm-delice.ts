@@ -200,33 +200,17 @@ async function main() {
 
   // 4. Create Restaurant
   console.log('🍽️ Création du restaurant...');
-  const restaurant = await db.restaurant.upsert({
-    where: { slug: KFM_DELICE.slug },
-    update: {
+  
+  // Check if restaurant exists first
+  let restaurant = await db.restaurant.findFirst({
+    where: { slug: KFM_DELICE.slug, organizationId: org.id },
+  });
+  
+  if (restaurant) {
+    restaurant = await db.restaurant.update({
+      where: { id: restaurant.id },
+      data: {
       name: KFM_DELICE.name,
-      description: KFM_DELICE.description,
-      phone: KFM_DELICE.phone,
-      address: KFM_DELICE.address,
-      city: KFM_DELICE.city,
-      district: KFM_DELICE.district,
-      countryId: guinea.id,
-      restaurantType: 'restaurant',
-      cuisines: JSON.stringify(KFM_DELICE.cuisine),
-      priceRange: KFM_DELICE.priceRange,
-      acceptsReservations: true,
-      acceptsDelivery: true,
-      acceptsTakeaway: true,
-      acceptsDineIn: true,
-      deliveryFee: 5000,
-      minOrderAmount: 10000,
-      maxDeliveryRadius: 15,
-      isActive: true,
-      isOpen: true,
-    },
-    create: {
-      organizationId: org.id,
-      name: KFM_DELICE.name,
-      slug: KFM_DELICE.slug,
       description: KFM_DELICE.description,
       phone: KFM_DELICE.phone,
       address: KFM_DELICE.address,
@@ -247,21 +231,69 @@ async function main() {
       isOpen: true,
     },
   });
+  } else {
+    restaurant = await db.restaurant.create({
+      data: {
+        organizationId: org.id,
+        name: KFM_DELICE.name,
+        slug: KFM_DELICE.slug,
+        description: KFM_DELICE.description,
+        phone: KFM_DELICE.phone,
+        address: KFM_DELICE.address,
+        city: KFM_DELICE.city,
+        district: KFM_DELICE.district,
+        countryId: guinea.id,
+        restaurantType: 'restaurant',
+        cuisines: JSON.stringify(KFM_DELICE.cuisine),
+        priceRange: KFM_DELICE.priceRange,
+        acceptsReservations: true,
+        acceptsDelivery: true,
+        acceptsTakeaway: true,
+        acceptsDineIn: true,
+        deliveryFee: 5000,
+        minOrderAmount: 10000,
+        maxDeliveryRadius: 15,
+        isActive: true,
+        isOpen: true,
+      },
+    });
+  }
 
-  // 5. Create Menu Categories
+  // 5. Create Menu first
+  console.log('📋 Création du menu...');
+  let menu = await db.menu.findFirst({
+    where: { restaurantId: restaurant.id },
+  });
+  
+  if (!menu) {
+    menu = await db.menu.create({
+      data: {
+        restaurantId: restaurant.id,
+        name: 'Menu Principal',
+        slug: 'menu-principal',
+        description: 'Menu complet de KFM DELICE',
+        isActive: true,
+        sortOrder: 1,
+      },
+    });
+    console.log('  ✓ Menu créé');
+  }
+
+  // 6. Create Menu Categories
   console.log('📂 Création des catégories de menu...');
   const categoryMap: Record<string, string> = {};
   
   for (const cat of MENU_CATEGORIES) {
     const existing = await db.menuCategory.findFirst({
-      where: { restaurantId: restaurant.id, name: cat.name },
+      where: { menuId: menu.id, name: cat.name },
     });
     
     if (!existing) {
       const created = await db.menuCategory.create({
         data: {
-          restaurantId: restaurant.id,
+          menuId: menu.id,
           name: cat.name,
+          slug: cat.name.toLowerCase().replace(/\s+/g, '-'),
           description: cat.description,
           sortOrder: cat.order,
           isActive: true,
@@ -274,7 +306,7 @@ async function main() {
     }
   }
 
-  // 6. Create Menu Items
+  // 7. Create Menu Items
   console.log('🍕 Création des articles du menu...');
   
   for (const item of MENU_ITEMS) {
@@ -282,15 +314,15 @@ async function main() {
     if (!categoryId) continue;
 
     const existing = await db.menuItem.findFirst({
-      where: { restaurantId: restaurant.id, name: item.name },
+      where: { categoryId: categoryId, name: item.name },
     });
 
     if (!existing) {
       await db.menuItem.create({
         data: {
-          restaurantId: restaurant.id,
           categoryId: categoryId,
           name: item.name,
+          slug: item.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
           description: item.description,
           price: item.price,
           prepTime: item.prepTime,
@@ -308,22 +340,22 @@ async function main() {
   
   const guineaZones = [
     // Conakry
-    { name: 'Kaloum', city: 'Conakry', fee: 5000, minOrder: 10000 },
-    { name: 'Dixinn', city: 'Conakry', fee: 5000, minOrder: 10000 },
-    { name: 'Ratoma', city: 'Conakry', fee: 5000, minOrder: 10000 },
-    { name: 'Matam', city: 'Conakry', fee: 6000, minOrder: 10000 },
-    { name: 'Matoto', city: 'Conakry', fee: 6000, minOrder: 10000 },
-    { name: 'Simbaya', city: 'Conakry', fee: 7000, minOrder: 15000 },
-    { name: 'Yimbaya', city: 'Conakry', fee: 7000, minOrder: 15000 },
-    { name: 'Cosa', city: 'Conakry', fee: 7000, minOrder: 15000 },
+    { name: 'Kaloum', description: 'Quartier Kaloum, Conakry', fee: 5000, minOrder: 10000 },
+    { name: 'Dixinn', description: 'Quartier Dixinn, Conakry', fee: 5000, minOrder: 10000 },
+    { name: 'Ratoma', description: 'Quartier Ratoma, Conakry', fee: 5000, minOrder: 10000 },
+    { name: 'Matam', description: 'Quartier Matam, Conakry', fee: 6000, minOrder: 10000 },
+    { name: 'Matoto', description: 'Quartier Matoto, Conakry', fee: 6000, minOrder: 10000 },
+    { name: 'Simbaya', description: 'Quartier Simbaya, Conakry', fee: 7000, minOrder: 15000 },
+    { name: 'Yimbaya', description: 'Quartier Yimbaya, Conakry', fee: 7000, minOrder: 15000 },
+    { name: 'Cosa', description: 'Quartier Cosa, Conakry', fee: 7000, minOrder: 15000 },
     // Autres villes
-    { name: 'Kamsar', city: 'Boké', fee: 50000, minOrder: 50000 },
-    { name: 'Boké', city: 'Boké', fee: 60000, minOrder: 50000 },
-    { name: 'Kindia', city: 'Kindia', fee: 30000, minOrder: 30000 },
-    { name: 'Mamou', city: 'Mamou', fee: 35000, minOrder: 35000 },
-    { name: 'Labé', city: 'Labé', fee: 40000, minOrder: 40000 },
-    { name: 'Kankan', city: 'Kankan', fee: 45000, minOrder: 45000 },
-    { name: 'Nzérékoré', city: 'Nzérékoré', fee: 50000, minOrder: 50000 },
+    { name: 'Kamsar', description: 'Ville de Kamsar, Boké', fee: 50000, minOrder: 50000 },
+    { name: 'Boké', description: 'Ville de Boké', fee: 60000, minOrder: 50000 },
+    { name: 'Kindia', description: 'Ville de Kindia', fee: 30000, minOrder: 30000 },
+    { name: 'Mamou', description: 'Ville de Mamou', fee: 35000, minOrder: 35000 },
+    { name: 'Labé', description: 'Ville de Labé', fee: 40000, minOrder: 40000 },
+    { name: 'Kankan', description: 'Ville de Kankan', fee: 45000, minOrder: 45000 },
+    { name: 'Nzérékoré', description: 'Ville de Nzérékoré', fee: 50000, minOrder: 50000 },
   ];
 
   for (const zone of guineaZones) {
@@ -336,10 +368,11 @@ async function main() {
         data: {
           restaurantId: restaurant.id,
           name: zone.name,
-          city: zone.city,
-          deliveryFee: zone.fee,
-          minOrderAmount: zone.minOrder,
-          estimatedTime: 45,
+          description: zone.description,
+          baseFee: zone.fee,
+          minOrder: zone.minOrder,
+          minTime: 30,
+          maxTime: 60,
           isActive: true,
         },
       });
