@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: kfm-delice
+    name: restauration-rapide
     runtime: node
     plan: free
     region: oregon
@@ -21,7 +21,7 @@ services:
       - key: NEXTAUTH_SECRET
         generateValue: true
       - key: NEXTAUTH_URL
-        value: https://kfm-delice.onrender.com
+        value: https://restauration-rapide.onrender.com
       - key: DATABASE_URL
         sync: false
       - key: PUSHER_APP_ID
