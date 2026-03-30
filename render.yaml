@@ -6,7 +6,7 @@ services:
     region: oregon
     branch: master
     repo: https://github.com/skaba89/restauration-rapide
-    buildCommand: npm run build
+    buildCommand: rm -rf node_modules && npm ci && npm run build
     startCommand: npm run start
     healthCheckPath: /api/health
     envVars:
